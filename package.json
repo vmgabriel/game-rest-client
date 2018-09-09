@@ -1,0 +1,28 @@
+{
+    "name": "pokemon-cliente-rest",
+    "version": "0.0.1",
+    "description": "Un juego con Rest",
+    "main": "index.js",
+    "scripts": {
+        "start": "nodemon --exec babel-node --presets env,stage-2 src/index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Gabriel Vargas",
+    "license": "GPL-3.0",
+    "dependencies": {
+        "body-parser": "^1.18.3",
+        "dotenv": "^6.0.0",
+        "express": "^4.16.3",
+        "method-override": "^3.0.0",
+        "node-sass-middleware": "^0.11.0",
+        "nodemon": "^1.18.4",
+        "path": "^0.12.7",
+        "pug": "^2.0.3",
+        "socket.io": "^2.1.1"
+    },
+    "devDependencies": {
+        "babel-cli": "^6.26.0",
+        "babel-preset-env": "^1.7.0",
+        "babel-preset-stage-2": "^6.24.1"
+    }
+}
