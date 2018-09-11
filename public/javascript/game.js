@@ -2,10 +2,11 @@ var config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
+    parent: "game-container",
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 0 },
             debug: false
         }
     },
@@ -16,134 +17,172 @@ var config = {
     }
 };
 
-var player;
-var stars;
-var bombs;
-var platforms;
-var cursors;
-var score = 0;
-var gameOver = false;
-var scoreText;
+// var player;
+// var stars;
+// var bombs;
+// var platforms;
+// var cursors;
+// var score = 0;
+// var gameOver = false;
+// var scoreText;
+
+var controls;
 
 var game = new Phaser.Game(config);
 
 function preload ()
 {
-    this.load.image('sky', 'img/assets/sky.png');
-    this.load.image('ground', 'img/assets/platform.png');
-    this.load.image('star', 'img/assets/star.png');
-    this.load.image('bomb', 'img/assets/bomb.png');
-    this.load.spritesheet('dude', 'img/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+    // this.load.image('sky', 'img/assets/sky.png');
+    // this.load.image('ground', 'img/assets/platform.png');
+    // this.load.image('star', 'img/assets/star.png');
+    // this.load.image('bomb', 'img/assets/bomb.png');
+    // this.load.spritesheet('dude', 'img/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+    this.load.image("tiles", "img/map/tuxmon-sample.png");
+    this.load.tilemapTiledJSON("map", "json/mapagame.json");
 }
 
 function create ()
 {
-    //  A simple background for our game
-    this.add.image(400, 300, 'sky');
+    // //  A simple background for our game
+    // this.add.image(400, 300, 'sky');
 
-    //  The platforms group contains the ground and the 2 ledges we can jump on
-    platforms = this.physics.add.staticGroup();
+    // //  The platforms group contains the ground and the 2 ledges we can jump on
+    // platforms = this.physics.add.staticGroup();
 
-    //  Here we create the ground.
-    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
-    platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+    // //  Here we create the ground.
+    // //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    // platforms.create(400, 568, 'ground').setScale(2).refreshBody();
 
-    //  Now let's create some ledges
-    platforms.create(600, 400, 'ground');
-    platforms.create(50, 250, 'ground');
-    platforms.create(750, 220, 'ground');
+    // //  Now let's create some ledges
+    // platforms.create(600, 400, 'ground');
+    // platforms.create(50, 250, 'ground');
+    // platforms.create(750, 220, 'ground');
 
-    // The player and its settings
-    player = this.physics.add.sprite(100, 450, 'dude');
+    // // The player and its settings
+    // player = this.physics.add.sprite(100, 450, 'dude');
 
-    //  Player physics properties. Give the little guy a slight bounce.
-    player.setBounce(0.2);
-    player.setCollideWorldBounds(true);
+    // //  Player physics properties. Give the little guy a slight bounce.
+    // player.setBounce(0.2);
+    // player.setCollideWorldBounds(true);
 
-    //  Our player animations, turning, walking left and walking right.
-    this.anims.create({
-        key: 'left',
-        frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-        frameRate: 10,
-        repeat: -1
+    // //  Our player animations, turning, walking left and walking right.
+    // this.anims.create({
+    //     key: 'left',
+    //     frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+    //     frameRate: 10,
+    //     repeat: -1
+    // });
+
+    // this.anims.create({
+    //     key: 'turn',
+    //     frames: [ { key: 'dude', frame: 4 } ],
+    //     frameRate: 20
+    // });
+
+    // this.anims.create({
+    //     key: 'right',
+    //     frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+    //     frameRate: 10,
+    //     repeat: -1
+    // });
+
+    // //  Input Events
+    // cursors = this.input.keyboard.createCursorKeys();
+
+    // //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
+    // stars = this.physics.add.group({
+    //     key: 'star',
+    //     repeat: 11,
+    //     setXY: { x: 12, y: 0, stepX: 70 }
+    // });
+
+    // stars.children.iterate(function (child) {
+
+    //     //  Give each star a slightly different bounce
+    //     child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+    // });
+
+    // bombs = this.physics.add.group();
+
+    // //  The score
+    // scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+
+    // //  Collide the player and the stars with the platforms
+    // this.physics.add.collider(player, platforms);
+    // this.physics.add.collider(stars, platforms);
+    // this.physics.add.collider(bombs, platforms);
+
+    // //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
+    // this.physics.add.overlap(player, stars, collectStar, null, this);
+
+    // this.physics.add.collider(player, bombs, hitBomb, null, this);
+
+    var map = this.make.tilemap({ key: "map" });
+
+    var tileset = map.addTilesetImage("tuxmon-sample", "tiles");
+
+    // Parameters: layer name (or index) from Tiled, tileset, x, y
+    var belowLayer = map.createStaticLayer("main", tileset, 0, 0);
+    var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0);
+
+    var camera = this.cameras.main;
+
+    // Set up the arrows to control the camera
+    var cursors = this.input.keyboard.createCursorKeys();
+    controls = new Phaser.Cameras.Controls.Fixed({
+        camera: camera,
+        left: cursors.left,
+        right: cursors.right,
+        up: cursors.up,
+        down: cursors.down,
+        speed: 0.5
     });
 
-    this.anims.create({
-        key: 'turn',
-        frames: [ { key: 'dude', frame: 4 } ],
-        frameRate: 20
-    });
+    camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    this.anims.create({
-        key: 'right',
-        frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-        frameRate: 10,
-        repeat: -1
-    });
-
-    //  Input Events
-    cursors = this.input.keyboard.createCursorKeys();
-
-    //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
-    stars = this.physics.add.group({
-        key: 'star',
-        repeat: 11,
-        setXY: { x: 12, y: 0, stepX: 70 }
-    });
-
-    stars.children.iterate(function (child) {
-
-        //  Give each star a slightly different bounce
-        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-
-    });
-
-    bombs = this.physics.add.group();
-
-    //  The score
-    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-
-    //  Collide the player and the stars with the platforms
-    this.physics.add.collider(player, platforms);
-    this.physics.add.collider(stars, platforms);
-    this.physics.add.collider(bombs, platforms);
-
-    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    this.physics.add.overlap(player, stars, collectStar, null, this);
-
-    this.physics.add.collider(player, bombs, hitBomb, null, this);
+    // Help text that has a "fixed" position on the screen
+    this.add
+        .text(16, 16, "Arrow keys to scroll", {
+            font: "18px monospace",
+            fill: "#ffffff",
+            padding: { x: 20, y: 10 },
+            backgroundColor: "#000000"
+        })
+        .setScrollFactor(0);
 }
 
-function update ()
+function update (time, delta)
 {
-    if (gameOver)
-    {
-        return;
-    }
+    // if (gameOver)
+    // {
+    //     return;
+    // }
 
-    if (cursors.left.isDown)
-    {
-        player.setVelocityX(-160);
+    // if (cursors.left.isDown)
+    // {
+    //     player.setVelocityX(-160);
 
-        player.anims.play('left', true);
-    }
-    else if (cursors.right.isDown)
-    {
-        player.setVelocityX(160);
+    //     player.anims.play('left', true);
+    // }
+    // else if (cursors.right.isDown)
+    // {
+    //     player.setVelocityX(160);
 
-        player.anims.play('right', true);
-    }
-    else
-    {
-        player.setVelocityX(0);
+    //     player.anims.play('right', true);
+    // }
+    // else
+    // {
+    //     player.setVelocityX(0);
 
-        player.anims.play('turn');
-    }
+    //     player.anims.play('turn');
+    // }
 
-    if (cursors.up.isDown && player.body.touching.down)
-    {
-        player.setVelocityY(-330);
-    }
+    // if (cursors.up.isDown && player.body.touching.down)
+    // {
+    //     player.setVelocityY(-330);
+    // }
+    controls.update(delta);
 }
 
 function collectStar (player, star)
