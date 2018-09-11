@@ -1,7 +1,7 @@
 var config = {
     type: Phaser.AUTO,
     width: 800,
-    height: 600,
+    height: 560,
     parent: "game-container",
     physics: {
         default: 'arcade',
@@ -17,172 +17,156 @@ var config = {
     }
 };
 
-// var player;
-// var stars;
-// var bombs;
-// var platforms;
-// var cursors;
-// var score = 0;
-// var gameOver = false;
-// var scoreText;
-
-var controls;
+var player;
+var showDebug = false;
 
 var game = new Phaser.Game(config);
 
 function preload ()
 {
-    // this.load.image('sky', 'img/assets/sky.png');
-    // this.load.image('ground', 'img/assets/platform.png');
-    // this.load.image('star', 'img/assets/star.png');
-    // this.load.image('bomb', 'img/assets/bomb.png');
-    // this.load.spritesheet('dude', 'img/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
     this.load.image("tiles", "img/map/tuxmon-sample.png");
     this.load.tilemapTiledJSON("map", "json/mapagame.json");
+
+    this.load.atlas("atlas", "img/assets/atlas/atlas.png", "img/assets/atlas/atlas.json");
 }
 
 function create ()
 {
-    // //  A simple background for our game
-    // this.add.image(400, 300, 'sky');
-
-    // //  The platforms group contains the ground and the 2 ledges we can jump on
-    // platforms = this.physics.add.staticGroup();
-
-    // //  Here we create the ground.
-    // //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
-    // platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-
-    // //  Now let's create some ledges
-    // platforms.create(600, 400, 'ground');
-    // platforms.create(50, 250, 'ground');
-    // platforms.create(750, 220, 'ground');
-
-    // // The player and its settings
-    // player = this.physics.add.sprite(100, 450, 'dude');
-
-    // //  Player physics properties. Give the little guy a slight bounce.
-    // player.setBounce(0.2);
-    // player.setCollideWorldBounds(true);
-
-    // //  Our player animations, turning, walking left and walking right.
-    // this.anims.create({
-    //     key: 'left',
-    //     frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-    //     frameRate: 10,
-    //     repeat: -1
-    // });
-
-    // this.anims.create({
-    //     key: 'turn',
-    //     frames: [ { key: 'dude', frame: 4 } ],
-    //     frameRate: 20
-    // });
-
-    // this.anims.create({
-    //     key: 'right',
-    //     frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-    //     frameRate: 10,
-    //     repeat: -1
-    // });
-
-    // //  Input Events
-    // cursors = this.input.keyboard.createCursorKeys();
-
-    // //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
-    // stars = this.physics.add.group({
-    //     key: 'star',
-    //     repeat: 11,
-    //     setXY: { x: 12, y: 0, stepX: 70 }
-    // });
-
-    // stars.children.iterate(function (child) {
-
-    //     //  Give each star a slightly different bounce
-    //     child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-
-    // });
-
-    // bombs = this.physics.add.group();
-
-    // //  The score
-    // scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-
-    // //  Collide the player and the stars with the platforms
-    // this.physics.add.collider(player, platforms);
-    // this.physics.add.collider(stars, platforms);
-    // this.physics.add.collider(bombs, platforms);
-
-    // //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    // this.physics.add.overlap(player, stars, collectStar, null, this);
-
-    // this.physics.add.collider(player, bombs, hitBomb, null, this);
-
     var map = this.make.tilemap({ key: "map" });
 
     var tileset = map.addTilesetImage("tuxmon-sample", "tiles");
 
     // Parameters: layer name (or index) from Tiled, tileset, x, y
-    var belowLayer = map.createStaticLayer("main", tileset, 0, 0);
-    var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0);
+    var belowLayer = map.createStaticLayer("main", tileset, 0, 0).setScale(3);;
+    var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0).setScale(3);;
 
-    var camera = this.cameras.main;
+    worldLayer.setCollisionByProperty({ collides: true });
+    belowLayer.setCollisionByProperty({ collides: true });
 
-    // Set up the arrows to control the camera
-    var cursors = this.input.keyboard.createCursorKeys();
-    controls = new Phaser.Cameras.Controls.Fixed({
-        camera: camera,
-        left: cursors.left,
-        right: cursors.right,
-        up: cursors.up,
-        down: cursors.down,
-        speed: 0.5
+    var spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
+
+    // Create a sprite with physics enabled via the physics system. The image used for the sprite has
+    // a bit of whitespace, so I'm using setSize & setOffset to control the size of the player's body.
+    player = this.physics.add
+        .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-front")
+        .setSize(30, 40)
+        .setOffset(0, 24);
+
+    // Watch the player and worldLayer for collisions, for the duration of the scene:
+    this.physics.add.collider(player, worldLayer);
+    this.physics.add.collider(player, belowLayer);
+
+    // Create the player's walking animations from the texture atlas. These are stored in the global
+    // animation manager so any sprite can access them.
+    var anims = this.anims;
+    anims.create({
+        key: "misa-left-walk",
+        frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+        frameRate: 10,
+        repeat: -1
+    });
+    anims.create({
+        key: "misa-right-walk",
+        frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+        frameRate: 10,
+        repeat: -1
+    });
+    anims.create({
+        key: "misa-front-walk",
+        frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+        frameRate: 10,
+        repeat: -1
+    });
+    anims.create({
+        key: "misa-back-walk",
+        frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+        frameRate: 10,
+        repeat: -1
     });
 
-    camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    var camera = this.cameras.main;
+    camera.startFollow(player);
+    camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+    cursors = this.input.keyboard.createCursorKeys();
 
     // Help text that has a "fixed" position on the screen
     this.add
-        .text(16, 16, "Arrow keys to scroll", {
+        .text(16, 16, 'Arrow keys to move\nPress "D" to show hitboxes', {
             font: "18px monospace",
-            fill: "#ffffff",
+            fill: "#000000",
             padding: { x: 20, y: 10 },
-            backgroundColor: "#000000"
+            backgroundColor: "#ffffff"
         })
-        .setScrollFactor(0);
+        .setScrollFactor(0)
+        .setDepth(30);
+
+    // Debug graphics
+    this.input.keyboard.once("keydown_D", event => {
+        // Turn on physics debugging to show player's hitbox
+        this.physics.world.createDebugGraphic();
+
+        // Create worldLayer collision graphic above the player, but below the help text
+        var graphics = this.add
+              .graphics()
+              .setAlpha(0.75)
+              .setDepth(20);
+        worldLayer.renderDebug(graphics, {
+            tileColor: null, // Color of non-colliding tiles
+            collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255), // Color of colliding tiles
+            faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
+        });
+        belowLayer.renderDebug(graphics, {
+            tileColor: null, // Color of non-colliding tiles
+            collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255), // Color of colliding tiles
+            faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
+        });
+    });
 }
 
 function update (time, delta)
 {
-    // if (gameOver)
-    // {
-    //     return;
-    // }
+    const speed = 175;
+    const prevVelocity = player.body.velocity.clone();
 
-    // if (cursors.left.isDown)
-    // {
-    //     player.setVelocityX(-160);
+    // Stop any previous movement from the last frame
+    player.body.setVelocity(0);
 
-    //     player.anims.play('left', true);
-    // }
-    // else if (cursors.right.isDown)
-    // {
-    //     player.setVelocityX(160);
+    // Horizontal movement
+    if (cursors.left.isDown) {
+        player.body.setVelocityX(-speed);
+    } else if (cursors.right.isDown) {
+        player.body.setVelocityX(speed);
+    }
 
-    //     player.anims.play('right', true);
-    // }
-    // else
-    // {
-    //     player.setVelocityX(0);
+    // Vertical movement
+    if (cursors.up.isDown) {
+        player.body.setVelocityY(-speed);
+    } else if (cursors.down.isDown) {
+        player.body.setVelocityY(speed);
+    }
 
-    //     player.anims.play('turn');
-    // }
+    // Normalize and scale the velocity so that player can't move faster along a diagonal
+    player.body.velocity.normalize().scale(speed);
 
-    // if (cursors.up.isDown && player.body.touching.down)
-    // {
-    //     player.setVelocityY(-330);
-    // }
-    controls.update(delta);
+    // Update the animation last and give left/right animations precedence over up/down animations
+    if (cursors.left.isDown) {
+        player.anims.play("misa-left-walk", true);
+    } else if (cursors.right.isDown) {
+        player.anims.play("misa-right-walk", true);
+    } else if (cursors.up.isDown) {
+        player.anims.play("misa-back-walk", true);
+    } else if (cursors.down.isDown) {
+        player.anims.play("misa-front-walk", true);
+    } else {
+        player.anims.stop();
+
+        // If we were moving, pick and idle frame to use
+        if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+        else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+        else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+        else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+    }
 }
 
 function collectStar (player, star)
