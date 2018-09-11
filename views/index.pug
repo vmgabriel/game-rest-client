@@ -1,10 +1,8 @@
 extends templates/template.pug
 
 block header
-  h3 header
+      include sections/header.pug
 
 block content
-  p Te amo Daissi!!!!
-
-block footer
-  h4 Hablo en serio
+      .container.center-block
+        script(src='javascript/game.js')
