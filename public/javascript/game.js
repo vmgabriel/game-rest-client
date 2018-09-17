@@ -1,63 +1,279 @@
+var mainMenu = './secciones/inicio.js';
+
+var jugador = {};
+
+var Preloader = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function Preloader ()
+    {
+        Phaser.Scene.call(this, { key: 'preloader' });
+    },
+
+    preload: function ()
+    {
+        // Escena MainMenu
+        this.load.image('buttonBG', 'img/assets/sky.png'); //Fondo
+        this.load.image('buttonText', 'img/assets/mega-bola..png'); // Boton
+        this.load.image('logoPokemon', 'img/Pokemon_logo.png'); // Logo
+        this.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js'); //Tipografia
+
+        // Escena Game Over
+        this.load.image('ayu', 'img/assets/game_over.jpg');
+
+        // Escena Game
+        this.load.image('ball', 'img/assets/beball1.png');
+
+        getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
+            jugador = response;
+        }).catch(function(err) {
+            console.log(err);
+        });
+    },
+
+    create: function ()
+    {
+        console.log('%c Preloader ', 'background: green; color: white; display: block;');
+        if (jugador.dinero == 0) {
+            this.scene.start('gameover');
+        } else {
+            this.scene.start('mainmenu');
+        }
+    }
+
+});
+
+var MainMenu = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function MainMenu ()
+    {
+        Phaser.Scene.call(this, { key: 'mainmenu' });
+        window.MENU = this;
+    },
+
+    create: function ()
+    {
+        console.log('%c MainMenu ', 'background: green; color: white; display: block;');
+
+        var bg = this.add.image(0, 0, 'buttonBG');
+        var logo = this.add.image(0, -100, 'logoPokemon').setScale(2);
+        var textConfig = {fontSize:'40px', color:'#000', fontFamily: 'Revalia'};
+        var text = this.add.text(-350, 100, "Dinero Restante de "+jugador.alias+": " +jugador.dinero, textConfig);
+
+        text.align = 'center';
+        text.stroke = '#000000';
+        text.strokeThickness = 2;
+        text.setShadow(5, 5, 'rgba(0,0,0,0.5)', 5);
+
+        var container = this.add.container(400, 300, [ bg, logo, text ]);
+
+        bg.setInteractive();
+
+        bg.once('pointerup', function () {
+            this.scene.start('game');
+        }, this);
+    }
+
+});
+
+var Game = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function Game ()
+    {
+        Phaser.Scene.call(this, { key: 'game' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c Game ', 'background: green; color: white; display: block;');
+
+        this.matter.world.setBounds(0, 0, 800, 600, 32, true, true, false, true);
+
+        //  Add in a stack of balls
+
+        for (var i = 0; i < 64; i++)
+        {
+            var ball = this.matter.add.image(Phaser.Math.Between(100, 700), Phaser.Math.Between(-600, 0), 'ball');
+            ball.setCircle();
+            ball.setFriction(0.005);
+            ball.setBounce(1);
+        }
+
+        var cursors = this.input.keyboard.createCursorKeys();
+
+        var controlConfig = {
+            camera: this.cameras.main,
+            left: cursors.left,
+            right: cursors.right,
+            up: cursors.up,
+            down: cursors.down,
+            zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+            zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            acceleration: 0.06,
+            drag: 0.0005,
+            maxSpeed: 1.0
+        };
+
+        this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
+
+        this.add.text(0, 0, 'Use Cursors to scroll camera.\nClick to Quit', { font: '18px Courier', fill: '#00ff00' }).setScrollFactor(0);
+
+        this.input.once('pointerup', function () {
+
+            this.scene.start('gameover');
+
+        }, this);
+    },
+
+    update: function (time, delta)
+    {
+        this.controls.update(delta);
+    }
+
+});
+
+var GameOver = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function GameOver ()
+    {
+        Phaser.Scene.call(this, { key: 'gameover' });
+        window.OVER = this;
+    },
+
+    create: function ()
+    {
+        var camera = this.cameras.add(0, 0, 800, 560);
+        camera.setBackgroundColor('rgba(255, 255, 255, 1)');
+
+        console.log('%c GameOver ', 'background: green; color: white; display: block;');
+
+        this.add.sprite(400, 300, 'ayu');
+        this.add.text(100, 420, 'Gracias por Jugar '+jugador.alias, { font: '40px Cantarell', fill: '#000000' });
+    }
+
+});
+
 var config = {
     type: Phaser.AUTO,
     width: 800,
     height: 560,
     parent: "game-container",
     physics: {
-        default: 'arcade',
+        default: 'matter',
         arcade: {
             gravity: { y: 0 },
             debug: false
         }
     },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
+    scene: [ Preloader, MainMenu, Game, GameOver ]
 };
 
 var player;
 var showDebug = false;
+var mapa="House1";
+
+// Variables de variabilidad del Mapa
+var spawnPoint = { x: 0, y: 0 };
+var map;
+var tileset;
+var camera;
+
+//var text;
+var style;
+
+var graphics;
+var rect;
 
 var game = new Phaser.Game(config);
 
 function preload ()
 {
+    // Mapa Principal
     this.load.image("tiles", "img/map/tuxmon-sample.png");
     this.load.tilemapTiledJSON("map", "json/mapagame.json");
-
     this.load.atlas("atlas", "img/assets/atlas/atlas.png", "img/assets/atlas/atlas.json");
+
+    // Mapa Casa 1
+    this.load.image("tilesCasa1", "img/map/Learnding.png");
+    this.load.tilemapTiledJSON("mapCasa1", "json/Casa1.json");
 }
 
 function create ()
 {
-    var map = this.make.tilemap({ key: "map" });
+    if (mapa == "Principal") {
+        map = this.make.tilemap({ key: "map" });
 
-    var tileset = map.addTilesetImage("tuxmon-sample", "tiles");
+        tileset = map.addTilesetImage("tuxmon-sample", "tiles");
 
-    // Parameters: layer name (or index) from Tiled, tileset, x, y
-    var belowLayer = map.createStaticLayer("main", tileset, 0, 0).setScale(3);;
-    var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0).setScale(3);;
+        var belowLayer = map.createStaticLayer("main", tileset, 0, 0).setScale(3);
+        var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0).setScale(3);
 
-    worldLayer.setCollisionByProperty({ collides: true });
-    belowLayer.setCollisionByProperty({ collides: true });
+        worldLayer.setCollisionByProperty({ collides: true });
+        belowLayer.setCollisionByProperty({ collides: true });
 
-    var spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
+        spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
+    } else if (mapa == "House1") {
+        map = this.make.tilemap({ key: "mapCasa1" });
 
-    // Create a sprite with physics enabled via the physics system. The image used for the sprite has
-    // a bit of whitespace, so I'm using setSize & setOffset to control the size of the player's body.
+        tileset = map.addTilesetImage("Learnding", "tilesCasa1");
+
+        var pisoCasa1 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(1.5);
+        var paredCasa1 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(1.5);
+        var accesoriosCasa1 = map.createStaticLayer("Accesorios", tileset, 0, 0).setScale(1.5);
+
+        rect = new Phaser.Geom.Rectangle(250, 200, 300, 200);
+
+        graphics = this.add.graphics({ fillStyle: { color: 0x0000ff } });
+
+        graphics.fillRectShape(rect);
+
+        paredCasa1.setCollisionByProperty({ collides: true });
+        accesoriosCasa1.setCollisionByProperty({ collides: true });
+
+        spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
+    } else if (mapa == "House2") {
+        style = { font: "bold 32px Arial", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" };
+
+        //  The Text is positioned at 0, 100
+        text = this.add.text(0, 0, "House2", style);
+        text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
+    } else if (mapa == "House3") {
+        var style = { font: "bold 32px Arial", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" };
+
+        //  The Text is positioned at 0, 100
+        text = this.add.text(0, 0, "House3", style);
+        text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
+    }
+
     player = this.physics.add
         .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-front")
         .setSize(30, 40)
         .setOffset(0, 24);
 
-    // Watch the player and worldLayer for collisions, for the duration of the scene:
+    // Principal
     this.physics.add.collider(player, worldLayer);
     this.physics.add.collider(player, belowLayer);
+    // Casa1
+    this.physics.add.collider(player, paredCasa1);
+    this.physics.add.collider(player, accesoriosCasa1);
 
-    // Create the player's walking animations from the texture atlas. These are stored in the global
-    // animation manager so any sprite can access them.
     var anims = this.anims;
     anims.create({
         key: "misa-left-walk",
@@ -84,44 +300,13 @@ function create ()
         repeat: -1
     });
 
-    var camera = this.cameras.main;
+    camera = this.cameras.main;
     camera.startFollow(player);
-    camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+    if (mapa == "Principal") {
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+    }
 
     cursors = this.input.keyboard.createCursorKeys();
-
-    // Help text that has a "fixed" position on the screen
-    this.add
-        .text(16, 16, 'Arrow keys to move\nPress "D" to show hitboxes', {
-            font: "18px monospace",
-            fill: "#000000",
-            padding: { x: 20, y: 10 },
-            backgroundColor: "#ffffff"
-        })
-        .setScrollFactor(0)
-        .setDepth(30);
-
-    // Debug graphics
-    this.input.keyboard.once("keydown_D", event => {
-        // Turn on physics debugging to show player's hitbox
-        this.physics.world.createDebugGraphic();
-
-        // Create worldLayer collision graphic above the player, but below the help text
-        var graphics = this.add
-              .graphics()
-              .setAlpha(0.75)
-              .setDepth(20);
-        worldLayer.renderDebug(graphics, {
-            tileColor: null, // Color of non-colliding tiles
-            collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255), // Color of colliding tiles
-            faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
-        });
-        belowLayer.renderDebug(graphics, {
-            tileColor: null, // Color of non-colliding tiles
-            collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255), // Color of colliding tiles
-            faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
-        });
-    });
 }
 
 function update (time, delta)
@@ -167,43 +352,12 @@ function update (time, delta)
         else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
         else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
     }
+
+    this.physics.add.collider(player, rect, salidaCasa, null, this);
+    this.physics.add.collider(player, graphics, salidaCasa, null, this);
 }
 
-function collectStar (player, star)
-{
-    star.disableBody(true, true);
-
-    //  Add and update the score
-    score += 10;
-    scoreText.setText('Score: ' + score);
-
-    if (stars.countActive(true) === 0)
-    {
-        //  A new batch of stars to collect
-        stars.children.iterate(function (child) {
-
-            child.enableBody(true, child.x, 0, true, true);
-
-        });
-
-        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-
-        var bomb = bombs.create(x, 16, 'bomb');
-        bomb.setBounce(1);
-        bomb.setCollideWorldBounds(true);
-        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-        bomb.allowGravity = false;
-
-    }
-}
-
-function hitBomb (player, bomb)
-{
-    this.physics.pause();
-
-    player.setTint(0xff0000);
-
-    player.anims.play('turn');
-
-    gameOver = true;
+function salidaCasa(sprite, tile) {
+    mapa = "Principal";
+    console.log("Hecho");
 }

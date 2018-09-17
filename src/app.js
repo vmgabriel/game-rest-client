@@ -24,7 +24,7 @@ const pathCss = path.join(__dirname, '../public/styles');
 app.use(sassMiddleware({
     src: pathSass,
     dest: pathCss,
-    debug: true,
+    debug: false,
     prefix: '/styles'
 }));
 
