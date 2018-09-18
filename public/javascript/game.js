@@ -1,6 +1,12 @@
 var mainMenu = './secciones/inicio.js';
 
 var jugador = {};
+var player;
+
+var showDebug = false;
+
+var map;
+var tileset;
 
 var Preloader = new Phaser.Class({
 
@@ -27,10 +33,19 @@ var Preloader = new Phaser.Class({
         // Escena Game
         this.load.image('ball', 'img/assets/beball1.png');
 
+        // Escena Mapa Principal
+        this.load.image("tiles", "img/map/tuxmon-sample.png");
+        this.load.tilemapTiledJSON("map", "json/mapagame.json");
+        this.load.atlas("atlas", "img/assets/atlas/atlas.png", "img/assets/atlas/atlas.json");
+
+        // Escena Mapa Casa 1
+        this.load.image("tilesCasa1", "img/map/Learnding.png");
+        this.load.tilemapTiledJSON("mapCasa1", "json/Casa1.json");
+
         getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
             jugador = response;
         }).catch(function(err) {
-            console.log(err);
+            alert(err);
         });
     },
 
@@ -77,8 +92,20 @@ var MainMenu = new Phaser.Class({
         bg.setInteractive();
 
         bg.once('pointerup', function () {
-            this.scene.start('game');
+            if (!jugador.mundo) {
+                this.scene.start('game');
+            } else {
+                this.scene.start(jugador.mundo);
+            }
         }, this);
+
+        jugador.lastSesion = Date.now();
+        putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+            .done(function (response) {
+                jugador = response;
+            }).catch(function(err) {
+                alert(err);
+            });
     }
 
 });
@@ -100,47 +127,283 @@ var Game = new Phaser.Class({
     {
         console.log('%c Game ', 'background: green; color: white; display: block;');
 
-        this.matter.world.setBounds(0, 0, 800, 600, 32, true, true, false, true);
+        map = this.make.tilemap({ key: "map" });
 
-        //  Add in a stack of balls
+        tileset = map.addTilesetImage("tuxmon-sample", "tiles");
 
-        for (var i = 0; i < 64; i++)
-        {
-            var ball = this.matter.add.image(Phaser.Math.Between(100, 700), Phaser.Math.Between(-600, 0), 'ball');
-            ball.setCircle();
-            ball.setFriction(0.005);
-            ball.setBounce(1);
+        var belowLayer = map.createStaticLayer("main", tileset, 0, 0).setScale(3);
+        var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0).setScale(3);
+        var doorLayer = map.createStaticLayer("Puertas", tileset, 0, 0).setScale(3);
+
+        worldLayer.setCollisionByProperty({ collides: true });
+        belowLayer.setCollisionByProperty({ collides: true });
+        doorLayer.setCollisionByProperty({ collides: true });
+
+        if (!jugador.mundo) {
+            var spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
+            player = this.physics.add
+                .sprite(spawnPoint.x*3, spawnPoint.y*3, "atlas", "misa-front")
+                .setSize(30, 40)
+                .setOffset(0, 24);
+            jugador.mundo = "game";
+            jugador.x = spawnPoint.x*3;
+            jugador.y = spawnPoint.y*3;
+
+            console.log(jugador);
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador).done(function (response) {
+                jugador = response;
+            }).catch(function(err) {
+                alert(err);
+            });
+        } else if (jugador.mundo != "game") {
+            jugador.mundo = "game";
+            player = this.physics.add
+                .sprite(jugador.mundoX, jugador.mundoY, "atlas", "misa-front")
+                .setSize(30, 40)
+                .setOffset(0, 24);
+            jugador.mundo = "game";
+        } else {
+            player = this.physics.add
+                .sprite(jugador.x, jugador.y, "atlas", "misa-front")
+                .setSize(30, 40)
+                .setOffset(0, 24);
         }
 
-        var cursors = this.input.keyboard.createCursorKeys();
+        this.physics.add.collider(player, worldLayer);
+        this.physics.add.collider(player, belowLayer);
+        this.physics.add.collider(player, doorLayer, function(pos) {
+            jugador.x = pos.x;
+            jugador.y = pos.y + 20;
+            jugador.mundoX = pos.x;
+            jugador.mundoY = pos.y + 20;
+            switch (seleccionPuerta(pos.x, pos.y)) {
+            case "estructura":
+                console.log("estructura");
+                jugador.mundo = "estructura";
+                break;
+            case "centroCuracion":
+                console.log("centroPokemon");
+                jugador.mundo = "centroPokemon";
+                break;
+            case "casaSpawn":
+                console.log("casaSpawn");
+                jugador.mundo = "house1";
+                this.scene.start("house1");
+                break;
+            case "casaMadera":
+                console.log("casaMadera");
+                jugador.mundo = "casaMadera";
+                break;
+            case "casaJaponesa":
+                console.log("casaJaponesa");
+                jugador.mundo = "casaJaponesa";
+                break;
+            case "casaAzul":
+                console.log("casaAzul");
+                jugador.mundo = "casaAzul";
+                break;
+            }
+        }, null, this);
 
-        var controlConfig = {
-            camera: this.cameras.main,
-            left: cursors.left,
-            right: cursors.right,
-            up: cursors.up,
-            down: cursors.down,
-            zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
-            zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-            acceleration: 0.06,
-            drag: 0.0005,
-            maxSpeed: 1.0
-        };
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
 
-        this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
-        this.add.text(0, 0, 'Use Cursors to scroll camera.\nClick to Quit', { font: '18px Courier', fill: '#00ff00' }).setScrollFactor(0);
-
-        this.input.once('pointerup', function () {
-
-            this.scene.start('gameover');
-
-        }, this);
+        cursors = this.input.keyboard.createCursorKeys();
     },
 
     update: function (time, delta)
     {
-        this.controls.update(delta);
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
+    }
+
+});
+
+var House1 = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function House1 ()
+    {
+        Phaser.Scene.call(this, { key: 'house1' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c House1 ', 'background: green; color: white; display: block;');
+
+        map = this.make.tilemap({ key: "mapCasa1" });
+
+        tileset = map.addTilesetImage("Learnding", "tilesCasa1");
+
+        var pisoCasa1 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(1.5);
+        var paredCasa1 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(1.5);
+        var accesoriosCasa1 = map.createStaticLayer("Accesorios", tileset, 0, 0).setScale(1.5);
+        var salidaCasa1 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(1.5);
+
+        paredCasa1.setCollisionByProperty({ collides: true });
+        accesoriosCasa1.setCollisionByProperty({ collides: true });
+        salidaCasa1.setCollisionByProperty({ collides: true });
+
+        var spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
+
+        player = this.physics.add
+            .sprite( spawnPoint.x*1.5, spawnPoint.y*1.5, "atlas", "misa-front")
+            .setSize(30, 40)
+            .setOffset(0, 24);
+        jugador.x = spawnPoint.x*1.5;
+        jugador.y = spawnPoint.y*1.5;
+
+        this.physics.add.collider(player, pisoCasa1);
+        this.physics.add.collider(player, paredCasa1);
+        this.physics.add.collider(player, salidaCasa1, function() {
+            this.scene.start("game");
+        }, null, this);
+
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+        cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    update: function (time, delta)
+    {
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
     }
 
 });
@@ -176,188 +439,28 @@ var config = {
     height: 560,
     parent: "game-container",
     physics: {
-        default: 'matter',
+        default: 'arcade',
         arcade: {
             gravity: { y: 0 },
             debug: false
         }
     },
-    scene: [ Preloader, MainMenu, Game, GameOver ]
+    scene: [ Preloader, MainMenu, Game, House1, GameOver ]
 };
-
-var player;
-var showDebug = false;
-var mapa="House1";
-
-// Variables de variabilidad del Mapa
-var spawnPoint = { x: 0, y: 0 };
-var map;
-var tileset;
-var camera;
-
-//var text;
-var style;
-
-var graphics;
-var rect;
 
 var game = new Phaser.Game(config);
 
-function preload ()
-{
-    // Mapa Principal
-    this.load.image("tiles", "img/map/tuxmon-sample.png");
-    this.load.tilemapTiledJSON("map", "json/mapagame.json");
-    this.load.atlas("atlas", "img/assets/atlas/atlas.png", "img/assets/atlas/atlas.json");
-
-    // Mapa Casa 1
-    this.load.image("tilesCasa1", "img/map/Learnding.png");
-    this.load.tilemapTiledJSON("mapCasa1", "json/Casa1.json");
-}
-
-function create ()
-{
-    if (mapa == "Principal") {
-        map = this.make.tilemap({ key: "map" });
-
-        tileset = map.addTilesetImage("tuxmon-sample", "tiles");
-
-        var belowLayer = map.createStaticLayer("main", tileset, 0, 0).setScale(3);
-        var worldLayer = map.createStaticLayer("Colisiones", tileset, 0, 0).setScale(3);
-
-        worldLayer.setCollisionByProperty({ collides: true });
-        belowLayer.setCollisionByProperty({ collides: true });
-
-        spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
-    } else if (mapa == "House1") {
-        map = this.make.tilemap({ key: "mapCasa1" });
-
-        tileset = map.addTilesetImage("Learnding", "tilesCasa1");
-
-        var pisoCasa1 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(1.5);
-        var paredCasa1 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(1.5);
-        var accesoriosCasa1 = map.createStaticLayer("Accesorios", tileset, 0, 0).setScale(1.5);
-
-        rect = new Phaser.Geom.Rectangle(250, 200, 300, 200);
-
-        graphics = this.add.graphics({ fillStyle: { color: 0x0000ff } });
-
-        graphics.fillRectShape(rect);
-
-        paredCasa1.setCollisionByProperty({ collides: true });
-        accesoriosCasa1.setCollisionByProperty({ collides: true });
-
-        spawnPoint = map.findObject("Objetos", obj => obj.name === "Spawn Point");
-    } else if (mapa == "House2") {
-        style = { font: "bold 32px Arial", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" };
-
-        //  The Text is positioned at 0, 100
-        text = this.add.text(0, 0, "House2", style);
-        text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
-    } else if (mapa == "House3") {
-        var style = { font: "bold 32px Arial", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" };
-
-        //  The Text is positioned at 0, 100
-        text = this.add.text(0, 0, "House3", style);
-        text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
-    }
-
-    player = this.physics.add
-        .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-front")
-        .setSize(30, 40)
-        .setOffset(0, 24);
-
-    // Principal
-    this.physics.add.collider(player, worldLayer);
-    this.physics.add.collider(player, belowLayer);
-    // Casa1
-    this.physics.add.collider(player, paredCasa1);
-    this.physics.add.collider(player, accesoriosCasa1);
-
-    var anims = this.anims;
-    anims.create({
-        key: "misa-left-walk",
-        frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
-        frameRate: 10,
-        repeat: -1
+function seleccionPuerta(posX, posY) {
+    var puertas = [
+        {name: "estructura", x0: 4200, y0: 770, x1: 4300, y1: 780},
+        {name: "centroCuracion", x0: 2900, y0: 3745, x1: 3010, y1: 3755},
+        {name: "casaAzul",x0: 1455, y0: 3124, x1: 1476, y1: 3129},
+        {name: "casaSpawn",x0: 455, y0: 340, x1: 468, y1: 345},
+        {name: "casaMadera", x0: 639, y0: 2355, x1: 661, y1: 2362},
+        {name: "casaJaponesa",x0: 2125, y0: 1252, x1: 2149, y1: 1257}];
+    puertas = puertas.filter(function (pue) {
+        return (pue.x0 <= posX && pue.x1 >= posX) && (pue.y0 <= posY && pue.y1 >= posY);
     });
-    anims.create({
-        key: "misa-right-walk",
-        frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
-        frameRate: 10,
-        repeat: -1
-    });
-    anims.create({
-        key: "misa-front-walk",
-        frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
-        frameRate: 10,
-        repeat: -1
-    });
-    anims.create({
-        key: "misa-back-walk",
-        frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
-        frameRate: 10,
-        repeat: -1
-    });
-
-    camera = this.cameras.main;
-    camera.startFollow(player);
-    if (mapa == "Principal") {
-        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
-    }
-
-    cursors = this.input.keyboard.createCursorKeys();
-}
-
-function update (time, delta)
-{
-    const speed = 175;
-    const prevVelocity = player.body.velocity.clone();
-
-    // Stop any previous movement from the last frame
-    player.body.setVelocity(0);
-
-    // Horizontal movement
-    if (cursors.left.isDown) {
-        player.body.setVelocityX(-speed);
-    } else if (cursors.right.isDown) {
-        player.body.setVelocityX(speed);
-    }
-
-    // Vertical movement
-    if (cursors.up.isDown) {
-        player.body.setVelocityY(-speed);
-    } else if (cursors.down.isDown) {
-        player.body.setVelocityY(speed);
-    }
-
-    // Normalize and scale the velocity so that player can't move faster along a diagonal
-    player.body.velocity.normalize().scale(speed);
-
-    // Update the animation last and give left/right animations precedence over up/down animations
-    if (cursors.left.isDown) {
-        player.anims.play("misa-left-walk", true);
-    } else if (cursors.right.isDown) {
-        player.anims.play("misa-right-walk", true);
-    } else if (cursors.up.isDown) {
-        player.anims.play("misa-back-walk", true);
-    } else if (cursors.down.isDown) {
-        player.anims.play("misa-front-walk", true);
-    } else {
-        player.anims.stop();
-
-        // If we were moving, pick and idle frame to use
-        if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
-        else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
-        else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
-        else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
-    }
-
-    this.physics.add.collider(player, rect, salidaCasa, null, this);
-    this.physics.add.collider(player, graphics, salidaCasa, null, this);
-}
-
-function salidaCasa(sprite, tile) {
-    mapa = "Principal";
-    console.log("Hecho");
+    puertas = puertas.length <= 0 ? null : puertas[0].name;
+    return puertas;
 }
