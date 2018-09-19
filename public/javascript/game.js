@@ -38,24 +38,30 @@ var Preloader = new Phaser.Class({
         // Escena Mapa Casa 1
         this.load.image("tilesCasa1", "img/map/Learnding.png");
         this.load.tilemapTiledJSON("mapCasa1", "json/Casa1.json");
+        this.load.image("personaje1", "img/assets/personaje1.png");
 
-        //Carga base de las demas casas
+        //Carga base de imagenes de las demas casas
         this.load.image("tilesCasaBase", "img/map/pokemon_date.png");
 
         // Escena Mapa Casa 2
         this.load.tilemapTiledJSON("mapCasa2", "json/Casa2.json");
+        this.load.image("personaje2", "img/assets/personaje2.png");
 
         // Escena Mapa Casa 3
         this.load.tilemapTiledJSON("mapCasa3", "json/Casa3.json");
+        this.load.image("personaje3", "img/assets/personaje3.png");
 
         // Escena Mapa Casa 4
         this.load.tilemapTiledJSON("mapCasa4", "json/Casa4.json");
+        this.load.image("personaje4", "img/assets/personaje4.png");
 
         // Escena Mapa Casa 5
         this.load.tilemapTiledJSON("mapCasa5", "json/Casa5.json");
+        this.load.image("personaje5", "img/assets/personaje5.png");
 
         // Escena Mapa Casa 6
         this.load.tilemapTiledJSON("mapCasa6", "json/casa6.json");
+        this.load.image("personaje6", "img/assets/personaje6.png");
 
         getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
             jugador = response;
@@ -117,7 +123,7 @@ var MainMenu = new Phaser.Class({
         jugador.lastSesion = Date.now();
         putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
             .done(function (response) {
-                jugador = response;
+                console.log(response);
             }).catch(function(err) {
                 alert(err);
             });
@@ -136,6 +142,11 @@ var Game = new Phaser.Class({
         Phaser.Scene.call(this, { key: 'game' });
         window.GAME = this;
         this.controls;
+        getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
+            jugador = response;
+        }).catch(function(err) {
+            alert(err);
+        });
     },
 
     create: function ()
@@ -164,7 +175,6 @@ var Game = new Phaser.Class({
             jugador.x = spawnPoint.x*3;
             jugador.y = spawnPoint.y*3;
 
-            console.log(jugador);
             putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador).done(function (response) {
                 jugador = response;
             }).catch(function(err) {
@@ -250,6 +260,16 @@ var Game = new Phaser.Class({
             frameRate: 10,
             repeat: -1
         });
+
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
 
         var camera = this.cameras.main;
         camera.startFollow(player);
@@ -374,6 +394,16 @@ var House1 = new Phaser.Class({
             frameRate: 10,
             repeat: -1
         });
+
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
 
         var camera = this.cameras.main;
         camera.startFollow(player);
@@ -500,6 +530,16 @@ var House2 = new Phaser.Class({
             repeat: -1
         });
 
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
+
         var camera = this.cameras.main;
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
@@ -623,6 +663,16 @@ var House3 = new Phaser.Class({
             frameRate: 10,
             repeat: -1
         });
+
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
 
         var camera = this.cameras.main;
         camera.startFollow(player);
@@ -748,6 +798,16 @@ var House4 = new Phaser.Class({
             repeat: -1
         });
 
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
+
         var camera = this.cameras.main;
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
@@ -872,6 +932,16 @@ var House5 = new Phaser.Class({
             repeat: -1
         });
 
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
+
         var camera = this.cameras.main;
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
@@ -995,6 +1065,16 @@ var House6 = new Phaser.Class({
             frameRate: 10,
             repeat: -1
         });
+
+        this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
 
         var camera = this.cameras.main;
         camera.startFollow(player);
