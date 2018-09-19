@@ -30,9 +30,6 @@ var Preloader = new Phaser.Class({
         // Escena Game Over
         this.load.image('ayu', 'img/assets/game_over.jpg');
 
-        // Escena Game
-        this.load.image('ball', 'img/assets/beball1.png');
-
         // Escena Mapa Principal
         this.load.image("tiles", "img/map/tuxmon-sample.png");
         this.load.tilemapTiledJSON("map", "json/mapagame.json");
@@ -41,6 +38,24 @@ var Preloader = new Phaser.Class({
         // Escena Mapa Casa 1
         this.load.image("tilesCasa1", "img/map/Learnding.png");
         this.load.tilemapTiledJSON("mapCasa1", "json/Casa1.json");
+
+        //Carga base de las demas casas
+        this.load.image("tilesCasaBase", "img/map/pokemon_date.png");
+
+        // Escena Mapa Casa 2
+        this.load.tilemapTiledJSON("mapCasa2", "json/Casa2.json");
+
+        // Escena Mapa Casa 3
+        this.load.tilemapTiledJSON("mapCasa3", "json/Casa3.json");
+
+        // Escena Mapa Casa 4
+        this.load.tilemapTiledJSON("mapCasa4", "json/Casa4.json");
+
+        // Escena Mapa Casa 5
+        this.load.tilemapTiledJSON("mapCasa5", "json/Casa5.json");
+
+        // Escena Mapa Casa 6
+        this.load.tilemapTiledJSON("mapCasa6", "json/casa6.json");
 
         getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
             jugador = response;
@@ -180,10 +195,12 @@ var Game = new Phaser.Class({
             case "estructura":
                 console.log("estructura");
                 jugador.mundo = "estructura";
+                this.scene.start("house2");
                 break;
             case "centroCuracion":
                 console.log("centroPokemon");
                 jugador.mundo = "centroPokemon";
+                this.scene.start("house4");
                 break;
             case "casaSpawn":
                 console.log("casaSpawn");
@@ -193,14 +210,17 @@ var Game = new Phaser.Class({
             case "casaMadera":
                 console.log("casaMadera");
                 jugador.mundo = "casaMadera";
+                this.scene.start("house3");
                 break;
             case "casaJaponesa":
                 console.log("casaJaponesa");
                 jugador.mundo = "casaJaponesa";
+                this.scene.start("house5");
                 break;
             case "casaAzul":
                 console.log("casaAzul");
                 jugador.mundo = "casaAzul";
+                this.scene.start("house6");
                 break;
             }
         }, null, this);
@@ -408,6 +428,627 @@ var House1 = new Phaser.Class({
 
 });
 
+
+var House2 = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function House2 ()
+    {
+        Phaser.Scene.call(this, { key: 'house2' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c House2 ', 'background: green; color: white; display: block;');
+
+        map = this.make.tilemap({ key: "mapCasa2" });
+
+        tileset = map.addTilesetImage("pokemon_date", "tilesCasaBase");
+
+        var pisoCasa2 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(2);
+        var paredCasa2 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(2);
+        var accesoriosCasa2 = map.createStaticLayer("Objetos", tileset, 0, 0).setScale(2);
+        var salidaCasa2 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(2);
+
+        paredCasa2.setCollisionByProperty({ collision: true });
+        accesoriosCasa2.setCollisionByProperty({ collision: true });
+        salidaCasa2.setCollisionByProperty({ collision: true });
+
+        var spawnPoint = map.findObject("Spawn", obj => obj.name === "Spawn Point");
+
+        player = this.physics.add
+            .sprite( spawnPoint.x*2, spawnPoint.y*2, "atlas", "misa-front")
+            .setSize(30, 40)
+            .setOffset(0, 24);
+        jugador.x = spawnPoint.x*2;
+        jugador.y = spawnPoint.y*2;
+
+        this.physics.add.collider(player, accesoriosCasa2);
+        this.physics.add.collider(player, paredCasa2);
+        this.physics.add.collider(player, salidaCasa2, function() {
+            this.scene.start("game");
+        }, null, this);
+
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+        cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    update: function (time, delta)
+    {
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
+    }
+
+});
+
+var House3 = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function House3 ()
+    {
+        Phaser.Scene.call(this, { key: 'house3' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c House3 ', 'background: green; color: white; display: block;');
+
+        map = this.make.tilemap({ key: "mapCasa3" });
+
+        tileset = map.addTilesetImage("pokemon_date", "tilesCasaBase");
+
+        var pisoCasa3 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(2);
+        var paredCasa3 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(2);
+        var accesoriosCasa3 = map.createStaticLayer("Objetos", tileset, 0, 0).setScale(2);
+        var salidaCasa3 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(2);
+
+        paredCasa3.setCollisionByProperty({ collide: true });
+        accesoriosCasa3.setCollisionByProperty({ collide: true });
+        salidaCasa3.setCollisionByProperty({ collide: true });
+
+        var spawnPoint = map.findObject("Spawn", obj => obj.name === "Spawn Point");
+
+        player = this.physics.add
+            .sprite( spawnPoint.x*2, spawnPoint.y*2, "atlas", "misa-front")
+            .setSize(30, 40)
+            .setOffset(0, 24);
+        jugador.x = spawnPoint.x*2;
+        jugador.y = spawnPoint.y*2;
+
+        this.physics.add.collider(player, accesoriosCasa3);
+        this.physics.add.collider(player, paredCasa3);
+        this.physics.add.collider(player, salidaCasa3, function() {
+            this.scene.start("game");
+        }, null, this);
+
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+        cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    update: function (time, delta)
+    {
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
+    }
+
+});
+
+var House4 = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function House4 ()
+    {
+        Phaser.Scene.call(this, { key: 'house4' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c House4 ', 'background: green; color: white; display: block;');
+
+        map = this.make.tilemap({ key: "mapCasa4" });
+
+        tileset = map.addTilesetImage("pokemon_date", "tilesCasaBase");
+
+        var pisoCasa4 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(2);
+        var paredCasa4 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(2);
+        var accesoriosCasa4 = map.createStaticLayer("Objeto", tileset, 0, 0).setScale(2);
+        var salidaCasa4 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(2);
+
+        paredCasa4.setCollisionByProperty({ collision: true });
+        accesoriosCasa4.setCollisionByProperty({ collision: true });
+        salidaCasa4.setCollisionByProperty({ collision: true });
+
+        var spawnPoint = map.findObject("Spawn", obj => obj.name === "Spawn Point");
+
+        player = this.physics.add
+            .sprite( spawnPoint.x*2, spawnPoint.y*2, "atlas", "misa-front")
+            .setSize(30, 40)
+            .setOffset(0, 24);
+        jugador.x = spawnPoint.x*2;
+        jugador.y = spawnPoint.y*2;
+
+        this.physics.add.collider(player, accesoriosCasa4);
+        this.physics.add.collider(player, paredCasa4);
+        this.physics.add.collider(player, salidaCasa4, function() {
+            this.scene.start("game");
+        }, null, this);
+
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+        cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    update: function (time, delta)
+    {
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
+    }
+
+});
+
+var House5 = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function House5 ()
+    {
+        Phaser.Scene.call(this, { key: 'house5' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c House5 ', 'background: green; color: white; display: block;');
+
+        map = this.make.tilemap({ key: "mapCasa5" });
+
+        tileset = map.addTilesetImage("pokemon_date", "tilesCasaBase");
+
+        var pisoCasa5 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(2);
+        var paredCasa5 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(2);
+        var accesoriosCasa5 = map.createStaticLayer("Objeto", tileset, 0, 0).setScale(2);
+        var salidaCasa5 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(2);
+
+        paredCasa5.setCollisionByProperty({ collider: true });
+        accesoriosCasa5.setCollisionByProperty({ collider: true });
+        salidaCasa5.setCollisionByProperty({ collider: true });
+
+        var spawnPoint = map.findObject("Spawn", obj => obj.name === "Spawn Point");
+
+        player = this.physics.add
+            .sprite( spawnPoint.x*2, spawnPoint.y*2, "atlas", "misa-front")
+            .setSize(30, 40)
+            .setOffset(0, 24);
+        jugador.x = spawnPoint.x*2;
+        jugador.y = spawnPoint.y*2;
+
+        this.physics.add.collider(player, accesoriosCasa5);
+        this.physics.add.collider(player, paredCasa5);
+        this.physics.add.collider(player, salidaCasa5, function() {
+            this.scene.start("game");
+        }, null, this);
+
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+        cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    update: function (time, delta)
+    {
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
+    }
+
+});
+
+var House6 = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize:
+
+    function House6 ()
+    {
+        Phaser.Scene.call(this, { key: 'house6' });
+        window.GAME = this;
+        this.controls;
+    },
+
+    create: function ()
+    {
+        console.log('%c House6 ', 'background: green; color: white; display: block;');
+
+        map = this.make.tilemap({ key: "mapCasa6" });
+
+        tileset = map.addTilesetImage("pokemon_date", "tilesCasaBase");
+
+        var pisoCasa6 = map.createStaticLayer("Piso", tileset, 0, 0).setScale(2);
+        var paredCasa6 = map.createStaticLayer("Pared", tileset, 0, 0).setScale(2);
+        var accesoriosCasa6 = map.createStaticLayer("Objeto", tileset, 0, 0).setScale(2);
+        var salidaCasa6 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(2);
+
+        paredCasa6.setCollisionByProperty({ collide: true });
+        accesoriosCasa6.setCollisionByProperty({ collide: true });
+        salidaCasa6.setCollisionByProperty({ collide: true });
+
+        var spawnPoint = map.findObject("Spawn", obj => obj.name === "Spawn Point");
+
+        player = this.physics.add
+            .sprite( spawnPoint.x*2, spawnPoint.y*2, "atlas", "misa-front")
+            .setSize(30, 40)
+            .setOffset(0, 24);
+        jugador.x = spawnPoint.x*2;
+        jugador.y = spawnPoint.y*2;
+
+        this.physics.add.collider(player, accesoriosCasa6);
+        this.physics.add.collider(player, paredCasa6);
+        this.physics.add.collider(player, salidaCasa6, function() {
+            this.scene.start("game");
+        }, null, this);
+
+        var anims = this.anims;
+        anims.create({
+            key: "misa-left-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-left-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-right-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-right-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-front-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-front-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        anims.create({
+            key: "misa-back-walk",
+            frames: anims.generateFrameNames("atlas", { prefix: "misa-back-walk.", start: 0, end: 3, zeroPad: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        var camera = this.cameras.main;
+        camera.startFollow(player);
+        camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
+
+        cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    update: function (time, delta)
+    {
+        const speed = 175;
+        const prevVelocity = player.body.velocity.clone();
+        player.body.setVelocity(0);
+
+        // Horizontal movement
+        if (cursors.left.isDown) {
+            player.body.setVelocityX(-speed);
+        } else if (cursors.right.isDown) {
+            player.body.setVelocityX(speed);
+        }
+
+        // Vertical movement
+        if (cursors.up.isDown) {
+            player.body.setVelocityY(-speed);
+        } else if (cursors.down.isDown) {
+            player.body.setVelocityY(speed);
+        }
+
+        // Normalize and scale the velocity so that player can't move faster along a diagonal
+        player.body.velocity.normalize().scale(speed);
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown) {
+            player.anims.play("misa-left-walk", true);
+        } else if (cursors.right.isDown) {
+            player.anims.play("misa-right-walk", true);
+        } else if (cursors.up.isDown) {
+            player.anims.play("misa-back-walk", true);
+        } else if (cursors.down.isDown) {
+            player.anims.play("misa-front-walk", true);
+        } else {
+            player.anims.stop();
+
+            // If we were moving, pick and idle frame to use
+            if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
+            else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
+            else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
+            else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+        }
+
+    }
+
+});
+
 var GameOver = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -445,7 +1086,7 @@ var config = {
             debug: false
         }
     },
-    scene: [ Preloader, MainMenu, Game, House1, GameOver ]
+    scene: [ Preloader, MainMenu, Game, House1, House2, House3, House4, House5, House6, GameOver ]
 };
 
 var game = new Phaser.Game(config);
