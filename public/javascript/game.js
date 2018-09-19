@@ -3,6 +3,8 @@
 var jugador = {};
 var player;
 
+var score;
+
 var protocolo = 'http';
 var pc = 'localhost';
 var puerto = 3800;
@@ -16,6 +18,15 @@ var showDebug = false;
 
 var map;
 var tileset;
+
+var gameOptions = {
+    // slices (prizes) placed in the wheel
+    slices: 8,
+    // prize names, starting from 12 o'clock going clockwise
+    slicePrizes: ["A KEY!!!", "50 STARS", "500 STARS", "BAD LUCK!!!", "200 STARS", "100 STARS", "150 STARS", "BAD LUCK!!!"],
+    // wheel rotation duration, in milliseconds
+    rotationTime: 3000
+}
 
 var Preloader = new Phaser.Class({
 
@@ -72,6 +83,10 @@ var Preloader = new Phaser.Class({
         // Escena Mapa Casa 6
         this.load.tilemapTiledJSON("mapCasa6", "json/casa6.json");
         this.load.image("personaje6", "img/assets/personaje6.png");
+
+        // Escena Juego
+        this.load.image("wheel", "img/assets/wheel.png");
+        this.load.image("pin", "img/assets/pin.png");
     },
 
     create: function ()
@@ -228,8 +243,9 @@ var Game = new Phaser.Class({
                 break;
             case "casaSpawn":
                 console.log("casaSpawn");
-                jugador.mundo = "house1";
-                this.scene.start("house1");
+                //jugador.mundo = "house1";
+                //this.scene.start("house1");
+                this.scene.start("PlayGame");
                 break;
             case "casaMadera":
                 console.log("casaMadera");
@@ -380,6 +396,8 @@ var House1 = new Phaser.Class({
         var accesoriosCasa1 = map.createStaticLayer("Accesorios", tileset, 0, 0).setScale(1.5);
         var salidaCasa1 = map.createStaticLayer("Salida", tileset, 0, 0).setScale(1.5);
 
+        var retador = this.add.sprite(100, 300, 'personaje1').setScale(2);
+
         paredCasa1.setCollisionByProperty({ collides: true });
         accesoriosCasa1.setCollisionByProperty({ collides: true });
         salidaCasa1.setCollisionByProperty({ collides: true });
@@ -398,6 +416,9 @@ var House1 = new Phaser.Class({
         this.physics.add.collider(player, salidaCasa1, function() {
             this.scene.start("game");
         }, null, this);
+        this.physics.add.collider(player, retador, function(x) {
+            console.log(x);
+        });
 
         var anims = this.anims;
         anims.create({
@@ -1280,6 +1301,141 @@ var GameOver = new Phaser.Class({
 
 });
 
+var Message = new Phaser.Class({
+
+    Extends: Phaser.GameObjects.Container,
+
+    initialize:
+    function Message(scene, events) {
+        Phaser.GameObjects.Container.call(this, scene, 160, 30);
+        var graphics = this.scene.add.graphics();
+        this.add(graphics);
+        graphics.lineStyle(1, 0xffffff, 0.8);
+        graphics.fillStyle(0x031f4c, 0.3);
+        graphics.strokeRect(-90, -15, 180, 30);
+        graphics.fillRect(-90, -15, 180, 30);
+        this.text = new Phaser.GameObjects.Text(scene, 0, 0, "", { color: '#ffffff', align: 'center', fontSize: 13, wordWrap: { width: 160, useAdvancedWrap: true }});
+        this.add(this.text);
+        this.text.setOrigin(0.5);
+        events.on("Message", this.showMessage, this);
+        this.visible = false;
+    },
+    showMessage: function(text) {
+        this.text.setText(text);
+        this.visible = true;
+        if(this.hideEvent)
+            this.hideEvent.remove(false);
+        this.hideEvent = this.scene.time.addEvent({ delay: 2000, callback: this.hideMessage, callbackScope: this });
+    },
+    hideMessage: function() {
+        this.hideEvent = null;
+        this.visible = false;
+    }
+});
+
+// PlayGame scene
+class playGame extends Phaser.Scene{
+    // constructor
+    constructor(){
+        super("PlayGame");
+    }
+    // method to be executed once the scene has been created
+    create(){
+        // adding the wheel in the middle of the canvas
+        this.wheel = this.add.sprite(game.config.width / 2, game.config.height / 2, "wheel");
+        // adding the pin in the middle of the canvas
+        this.pin = this.add.sprite(game.config.width / 2, game.config.height / 2, "pin");
+        // adding the text field
+        this.prizeText = this.add.text(game.config.width / 2, game.config.height - 20, "Spin the wheel", {
+            font: "bold 32px Arial",
+            align: "center",
+            color: "white"
+        });
+        // center the text
+        this.prizeText.setOrigin(0.5);
+        // the game has just started = we can spin the wheel
+        this.canSpin = true;
+        // waiting for your input, then calling "spinWheel" function
+        this.input.on("pointerdown", this.spinWheel, this);
+
+        score = this.add
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nValor por Juego 100\nPresione Click para Apostart\nPresione S para salir", {
+                font: "18px monospace",
+                fill: "#000000",
+                padding: { x: 20, y: 10 },
+                backgroundColor: "#ffffff",
+                border: "2px solid"
+            })
+            .setScrollFactor(0);
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+    }
+    // function to spin the wheel
+    spinWheel(){
+        // can we spin the wheel?
+        if(this.canSpin){
+            // resetting text field
+            this.prizeText.setText("");
+            // the wheel will spin round from 2 to 4 times. This is just coreography
+            var rounds = Phaser.Math.Between(2, 4);
+            // then will rotate by a random number from 0 to 360 degrees. This is the actual spin
+            var degrees = Phaser.Math.Between(0, 360);
+            // before the wheel ends spinning, we already know the prize according to "degrees" rotation and the number of slices
+            var prize = gameOptions.slices - 1 - Math.floor(degrees / (360 / gameOptions.slices));
+            // now the wheel cannot spin because it's already spinning
+            this.canSpin = false;
+            // animation tweeen for the spin: duration 3s, will rotate by (360 * rounds + degrees) degrees
+            // the quadratic easing will simulate friction
+            this.tweens.add({
+                // adding the wheel to tween targets
+                targets: [this.wheel],
+                // angle destination
+                angle: 360 * rounds + degrees,
+                // tween duration
+                duration: gameOptions.rotationTime,
+                // tween easing
+                ease: "Cubic.easeOut",
+                // callback scope
+                callbackScope: this,
+                // function to be executed once the tween has been completed
+                onComplete: function(tween){
+                    // displaying prize text
+                    this.prizeText.setText(gameOptions.slicePrizes[prize]);
+                    // ["A KEY!!!", "50 STARS", "500 STARS", "BAD LUCK!!!", "200 STARS", "100 STARS", "150 STARS", "BAD LUCK!!!"]
+                    if (prize == 1) {
+                        jugador.dinero += 50;
+                    }
+                    if (prize == 2) {
+                        jugador.dinero += 500;
+                    }
+                    if (prize == 4) {
+                        jugador.dinero += 200;
+                    }
+                    if (prize == 5) {
+                        jugador.dinero += 100;
+                    }
+                    if (prize == 6) {
+                        jugador.dinero += 150;
+                    }
+                    if (jugador.dinero >= jugador.dinerMaximo) {
+                        jugador.dineroMaximo = jugador.dinero;
+                    }
+                    score.setText(jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nValor por Juego 100\nPresione Click para Apostart\nPresione S para salir");
+                    // player can spin again
+                    this.canSpin = true;
+                }
+            });
+        }
+    }
+
+    update() {
+        if (this.key.isDown) {
+            console.log(this.key.isDown);
+            jugador.x += 10;
+            this.scene.start("game");
+        }
+    }
+}
+
 var config = {
     type: Phaser.AUTO,
     width: 800,
@@ -1292,7 +1448,7 @@ var config = {
             debug: false
         }
     },
-    scene: [ Preloader, MainMenu, Game, House1, House2, House3, House4, House5, House6, GameOver ]
+    scene: [ Preloader, MainMenu, Game, House1, House2, House3, House4, House5, House6, playGame, GameOver ]
 };
 
 var game = new Phaser.Game(config);
