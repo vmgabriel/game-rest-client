@@ -204,12 +204,12 @@ var Game = new Phaser.Class({
             switch (seleccionPuerta(pos.x, pos.y)) {
             case "estructura":
                 console.log("estructura");
-                jugador.mundo = "estructura";
+                jugador.mundo = "house2";
                 this.scene.start("house2");
                 break;
             case "centroCuracion":
                 console.log("centroPokemon");
-                jugador.mundo = "centroPokemon";
+                jugador.mundo = "house4";
                 this.scene.start("house4");
                 break;
             case "casaSpawn":
@@ -219,17 +219,17 @@ var Game = new Phaser.Class({
                 break;
             case "casaMadera":
                 console.log("casaMadera");
-                jugador.mundo = "casaMadera";
+                jugador.mundo = "house3";
                 this.scene.start("house3");
                 break;
             case "casaJaponesa":
                 console.log("casaJaponesa");
-                jugador.mundo = "casaJaponesa";
+                jugador.mundo = "house5";
                 this.scene.start("house5");
                 break;
             case "casaAzul":
                 console.log("casaAzul");
-                jugador.mundo = "casaAzul";
+                jugador.mundo = "house6";
                 this.scene.start("house6");
                 break;
             }
@@ -262,7 +262,7 @@ var Game = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -275,6 +275,7 @@ var Game = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -283,6 +284,21 @@ var Game = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                alert (err);
+            });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
@@ -396,7 +412,7 @@ var House1 = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -409,6 +425,7 @@ var House1 = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -417,6 +434,21 @@ var House1 = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                    alert (err);
+                });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
@@ -531,7 +563,7 @@ var House2 = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -544,6 +576,7 @@ var House2 = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -552,6 +585,21 @@ var House2 = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                    alert (err);
+                });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
@@ -665,7 +713,7 @@ var House3 = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -678,6 +726,7 @@ var House3 = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -686,6 +735,21 @@ var House3 = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                    alert (err);
+                });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
@@ -799,7 +863,7 @@ var House4 = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -812,6 +876,7 @@ var House4 = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -820,6 +885,21 @@ var House4 = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                    alert (err);
+                });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
@@ -933,7 +1013,7 @@ var House5 = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -946,6 +1026,7 @@ var House5 = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -954,6 +1035,21 @@ var House5 = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                    alert (err);
+                });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
@@ -1067,7 +1163,7 @@ var House6 = new Phaser.Class({
         });
 
         this.add
-            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero, {
+            .text(16, 16, jugador.alias + "\n Dinero Acumulado: " + jugador.dinero + "\nPulsa Q para guardar", {
                 font: "18px monospace",
                 fill: "#000000",
                 padding: { x: 20, y: 10 },
@@ -1080,6 +1176,7 @@ var House6 = new Phaser.Class({
         camera.startFollow(player);
         camera.setBounds(0, 0, map.widthInPixels*3, map.heightInPixels*3);
 
+        this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         cursors = this.input.keyboard.createCursorKeys();
     },
 
@@ -1088,6 +1185,21 @@ var House6 = new Phaser.Class({
         const speed = 175;
         const prevVelocity = player.body.velocity.clone();
         player.body.setVelocity(0);
+
+        if (this.key.isDown) {
+            //Guardar Juego
+            jugador.x = player.x;
+            jugador.y = player.y;
+            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+                .done(function (datos) {
+                    if (datos.ok == 1) {
+                        console.log("Hecho Correctamente");
+                    }
+                })
+                .catch(function (err) {
+                    alert (err);
+                });
+        }
 
         // Horizontal movement
         if (cursors.left.isDown) {
