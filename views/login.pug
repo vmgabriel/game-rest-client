@@ -1,0 +1,18 @@
+extends templates/template.pug
+
+block header
+      include sections/header.pug
+
+block content
+      .container.center-block
+        form(method="post" action="/")
+          .form-group
+            label(for='aliasInput') Ingrese Alias
+            input#aliasInput.form-control(type='text' placeholder='Ingrese Alias' name="alias")
+          .form-group
+            label(for='contraInput') Ingrese Contraseña
+            input#contraInput.form-control(type='password' placeholder='Contraseña' name="contra")
+          button.btn.btn-primary(type='submit') Iniciar Sesion
+      .container.caja-link
+        a.btn.btn-primary.btn-lg.btn-block(href="/new" role="button") Nuevo Jugador
+

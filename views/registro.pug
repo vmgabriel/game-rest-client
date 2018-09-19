@@ -1,0 +1,25 @@
+extends templates/template.pug
+
+block header
+      include sections/header.pug
+
+block content
+      .container.center-block
+        h3 Nuevo Jugador
+        form(method="POST" action="/new")
+          .form-group
+            label(for='inputAlias') Ingrese Alias
+            input#inputAlias.form-control(type='text' placeholder='Alias' name="alias")
+          .form-group
+            label(for='inputContra') Ingrese Contraseña
+            input#inputContra.form-control(type='password' placeholder='Contraseña' name="contra")
+          .form-group
+            label(for='inputCorreo') Ingrese Correo
+            input#inputCorreo.form-control(type='email' placeholder='Correo Electronico' aria-describedby="emailHelp" name="correo")
+          .form-group
+            label(for='inputCodigo') Ingrese Codigo
+            input#inputCodigo.form-control(type='text' placeholder='Codigo' name="codigo")
+          .form-group
+            button.btn.btn-primary.btn-lg.btn-block(type='submit') Registrar
+
+

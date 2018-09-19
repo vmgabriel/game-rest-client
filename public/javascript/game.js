@@ -1,7 +1,16 @@
-var mainMenu = './secciones/inicio.js';
+// Hecho por Gabriel vargas Monroy
 
 var jugador = {};
 var player;
+
+var protocolo = 'http';
+var pc = 'localhost';
+var puerto = 3800;
+var resFul = '/api/v0';
+
+var linkSer = protocolo + "://"+pc+":"+puerto+resFul;
+
+var playerId;
 
 var showDebug = false;
 
@@ -17,6 +26,7 @@ var Preloader = new Phaser.Class({
     function Preloader ()
     {
         Phaser.Scene.call(this, { key: 'preloader' });
+        playerId = obtenerID(location.href);
     },
 
     preload: function ()
@@ -62,17 +72,21 @@ var Preloader = new Phaser.Class({
         // Escena Mapa Casa 6
         this.load.tilemapTiledJSON("mapCasa6", "json/casa6.json");
         this.load.image("personaje6", "img/assets/personaje6.png");
-
-        getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
-            jugador = response;
-        }).catch(function(err) {
-            alert(err);
-        });
     },
 
     create: function ()
     {
         console.log('%c Preloader ', 'background: green; color: white; display: block;');
+
+        getAPI(linkSer+"/jugadores/"+playerId)
+            .done(function (response) {
+                jugador = response;
+                if (!jugador) {
+                    redireccionar();
+                }
+            }).catch(function(err) {
+                redireccionar();
+            });
         if (jugador.dinero == 0) {
             this.scene.start('gameover');
         } else {
@@ -121,11 +135,11 @@ var MainMenu = new Phaser.Class({
         }, this);
 
         jugador.lastSesion = Date.now();
-        putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+        putAPI(linkSer+"/jugadores/"+playerId, jugador)
             .done(function (response) {
                 console.log(response);
             }).catch(function(err) {
-                alert(err);
+                redireccionar();
             });
     }
 
@@ -142,10 +156,10 @@ var Game = new Phaser.Class({
         Phaser.Scene.call(this, { key: 'game' });
         window.GAME = this;
         this.controls;
-        getAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3").done(function (response) {
+        getAPI(linkSer+"/jugadores/"+playerId).done(function (response) {
             jugador = response;
         }).catch(function(err) {
-            alert(err);
+            redireccionar();
         });
     },
 
@@ -175,7 +189,7 @@ var Game = new Phaser.Class({
             jugador.x = spawnPoint.x*3;
             jugador.y = spawnPoint.y*3;
 
-            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador).done(function (response) {
+            putAPI(linkSer+"/jugadores/"+playerId, jugador).done(function (response) {
                 jugador = response;
             }).catch(function(err) {
                 alert(err);
@@ -289,15 +303,15 @@ var Game = new Phaser.Class({
             //Guardar Juego
             jugador.x = player.x;
             jugador.y = player.y;
-            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+            putAPI(linkSer+"/jugadores/"+playerId, jugador)
                 .done(function (datos) {
                     if (datos.ok == 1) {
                         console.log("Hecho Correctamente");
                     }
                 })
                 .catch(function (err) {
-                alert (err);
-            });
+                    redireccionar();
+                });
         }
 
         // Horizontal movement
@@ -439,14 +453,14 @@ var House1 = new Phaser.Class({
             //Guardar Juego
             jugador.x = player.x;
             jugador.y = player.y;
-            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+            putAPI(linkSer+"/jugadores/"+playerId, jugador)
                 .done(function (datos) {
                     if (datos.ok == 1) {
                         console.log("Hecho Correctamente");
                     }
                 })
                 .catch(function (err) {
-                    alert (err);
+                    direccionar();
                 });
         }
 
@@ -590,14 +604,14 @@ var House2 = new Phaser.Class({
             //Guardar Juego
             jugador.x = player.x;
             jugador.y = player.y;
-            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+            putAPI(linkSer+"/jugadores/"+playerId, jugador)
                 .done(function (datos) {
                     if (datos.ok == 1) {
                         console.log("Hecho Correctamente");
                     }
                 })
                 .catch(function (err) {
-                    alert (err);
+                    redireccionar();
                 });
         }
 
@@ -740,14 +754,14 @@ var House3 = new Phaser.Class({
             //Guardar Juego
             jugador.x = player.x;
             jugador.y = player.y;
-            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+            putAPI(linkSer+"/jugadores/"+playerId, jugador)
                 .done(function (datos) {
                     if (datos.ok == 1) {
                         console.log("Hecho Correctamente");
                     }
                 })
                 .catch(function (err) {
-                    alert (err);
+                    redireccionar();
                 });
         }
 
@@ -890,14 +904,14 @@ var House4 = new Phaser.Class({
             //Guardar Juego
             jugador.x = player.x;
             jugador.y = player.y;
-            putAPI("http://localhost:3800/api/v0/jugadores/5b9ee888989cae2a7e9d49b3", jugador)
+            putAPI(linkSer+"/jugadores/"+playerId, jugador)
                 .done(function (datos) {
                     if (datos.ok == 1) {
                         console.log("Hecho Correctamente");
                     }
                 })
                 .catch(function (err) {
-                    alert (err);
+                    redireccionar();
                 });
         }
 
@@ -1047,7 +1061,7 @@ var House5 = new Phaser.Class({
                     }
                 })
                 .catch(function (err) {
-                    alert (err);
+                    redireccionar();
                 });
         }
 
@@ -1197,7 +1211,7 @@ var House6 = new Phaser.Class({
                     }
                 })
                 .catch(function (err) {
-                    alert (err);
+                    redireccionar();
                 });
         }
 

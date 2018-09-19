@@ -1,0 +1,21 @@
+extends templates/template.pug
+
+block header
+      include sections/header.pug
+
+block content
+      .container.center-block
+        table.table
+          thead
+            tr
+              th(scope='col') #
+              th(scope='col') Alias
+              th(scope='col') Dinero Maximo
+              th(scope='col') Dinero Actual
+          tbody
+              each val, i in jugadores
+                tr
+                  th(scope="row")= i+1
+                  td= val.alias
+                  td= val.dineroMaximo
+                  td= val.dinero

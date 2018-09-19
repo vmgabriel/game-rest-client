@@ -64,3 +64,14 @@ function deleteAPI(url, data) {
     });
     return test;
 }
+
+
+function redireccionar() {
+    window.location="http://localhost:3000/error";
+}
+
+function obtenerID(url) {
+    var id = url.substring(url.lastIndexOf('/') + 1);
+    console.log(id);
+    return id;
+}
